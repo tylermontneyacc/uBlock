@@ -31,6 +31,8 @@ let writePtr = 0;
 // unused, and thus removed from memory.
 const logBufferObsoleteAfter = 30 * 1000;
 
+var httpLogger = null;
+
 const janitor = ( ) => {
     if (
         buffer !== null &&
@@ -55,22 +57,32 @@ const boxEntry = function(details) {
 };
 
 const logger = {
-    enabled: false,
+    enabled: true,
+    logToPopup: false,
+    logToHttp: false,
     ownerId: undefined,
     writeOne: function(details) {
-        if ( buffer === null ) { return; }
-        const box = boxEntry(details);
-        if ( writePtr === buffer.length ) {
-            buffer.push(box);
-        } else {
-            buffer[writePtr] = box;
+        if(this.enabled){
+            if(this.logToPopup){
+                if ( buffer === null ) { return; }
+                const box = boxEntry(details);
+                if ( writePtr === buffer.length ) {
+                    buffer.push(box);
+                } else {
+                    buffer[writePtr] = box;
+                }
+                writePtr += 1;
+            }
+
+            if(this.logToHttp){
+                httpLogger.postMessage({'event': details});
+            }
         }
-        writePtr += 1;
     },
     readAll: function(ownerId) {
         this.ownerId = ownerId;
         if ( buffer === null ) {
-            this.enabled = true;
+            this.logToPopup = true;
             buffer = [];
             vAPI.setTimeout(janitor, logBufferObsoleteAfter);
         }
@@ -80,6 +92,32 @@ const logger = {
         return out;
     },
 };
+
+logger.changeHiddenSettings = function(hs) {
+    console.debug('Hidden settings have been changed');
+    setLogToHttp(hs);
+}
+
+const setLogToHttp = function(hs){
+    logger.logToHttp = hs.logToHttp;
+
+    if(hs.logToHttp){
+        if(httpLogger){
+            console.debug('HTTP logging will be restarted');
+            httpLogger.terminate();
+        } else {
+            console.debug('HTTP logging will be enabled');
+        }
+
+        httpLogger = new Worker('js/logger-http.js');
+        httpLogger.postMessage({'settings': hs});
+        httpLogger.postMessage({'start': null});
+        
+    }else if(httpLogger){
+        console.debug('HTTP logging will be disabled');
+        httpLogger.terminate();
+    }
+}
 
 /******************************************************************************/
 

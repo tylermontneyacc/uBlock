@@ -1483,6 +1483,7 @@ const onMessage = function(request, sender, callback) {
 
     case 'writeHiddenSettings':
         µb.changeHiddenSettings(µb.hiddenSettingsFromString(request.content));
+        logger.changeHiddenSettings(µb.hiddenSettingsFromString(request.content));
         break;
 
     default:

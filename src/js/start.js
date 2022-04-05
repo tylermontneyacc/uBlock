@@ -55,6 +55,7 @@ import {
     permanentURLFiltering,
     sessionURLFiltering,
 } from './filtering-engines.js';
+import logger from './logger.js';
 
 /******************************************************************************/
 
@@ -514,6 +515,8 @@ browser.runtime.onUpdateAvailable.addListener(details => {
         vAPI.app.restart();
     }
 });
+
+logger.changeHiddenSettings(µb.hiddenSettings);
 
 µb.supportStats.allReadyAfter = `${Date.now() - vAPI.T0} ms`;
 if ( selfieIsValid ) {
